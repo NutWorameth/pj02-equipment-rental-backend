@@ -144,11 +144,13 @@ if (process.env.MONGO_URI) {
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(hpp());
 app.use(rateLimit({
   windowMs: 10 * 60 * 1000,
-  limit: 100,
+  limit: 1000,
   message: {
     success: false,
     error: "Too many requests from this IP, please try again later.",
@@ -229,13 +231,15 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`Equipment Rental API running on http://localhost:${PORT}`);
-});
+const server = process.env.VERCEL
+  ? null
+  : app.listen(PORT, () => {
+    console.log(`Equipment Rental API running on http://localhost:${PORT}`);
+  });
 
 process.on("unhandledRejection", (error) => {
   console.error(`Unhandled rejection: ${error.message}`);
-  server.close(() => process.exit(1));
+  if (server) server.close(() => process.exit(1));
 });
 
 process.on("uncaughtException", (error) => {
@@ -243,4 +247,4 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 
-module.exports = { app, server };
+module.exports = app;
